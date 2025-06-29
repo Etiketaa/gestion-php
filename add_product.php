@@ -34,31 +34,55 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $category_id = trim($_POST["category_id"]);
     }
 
-    $image_base64 = null;
-    if (isset($_FILES['image']) && $_FILES['image']['error'] == 0) {
-        $image_tmp_path = $_FILES['image']['tmp_name'];
-        $image_data = file_get_contents($image_tmp_path);
-        $image_base64 = base64_encode($image_data);
-    } else {
-        $image_err = "Please select an image to upload.";
+    $images_to_save = [];
+
+    // Process pasted images first
+    if (!empty($_POST['pasted_images_base64'])) {
+        $pasted_images = json_decode($_POST['pasted_images_base64'], true);
+        foreach ($pasted_images as $base64_data) {
+            $images_to_save[] = substr($base64_data, strpos($base64_data, ',') + 1); // Remove data:image/jpeg;base64, prefix
+        }
+    }
+
+    // Process uploaded files
+    if (isset($_FILES['images']) && is_array($_FILES['images']['tmp_name'])) {
+        foreach ($_FILES['images']['tmp_name'] as $key => $tmp_name) {
+            if ($_FILES['images']['error'][$key] == 0) {
+                $image_data = file_get_contents($tmp_name);
+                $images_to_save[] = base64_encode($image_data);
+            }
+        }
+    }
+
+    if (empty($images_to_save)) {
+        $image_err = "Please upload or paste at least one image.";
     }
 
     if (empty($name_err) && empty($description_err) && empty($price_err) && empty($stock_err) && empty($image_err) && empty($category_err)) {
-        $sql = "INSERT INTO products (name, description, price, stock, sku, image, category_id) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        $sql = "INSERT INTO products (name, description, price, stock, sku, category_id) VALUES (?, ?, ?, ?, ?, ?)";
 
         if ($stmt = $mysqli->prepare($sql)) {
-            $stmt->bind_param("ssdissi", $param_name, $param_description, $param_price, $param_stock, $param_sku, $param_image, $param_category_id);
+            $stmt->bind_param("ssdisi", $param_name, $param_description, $param_price, $param_stock, $param_sku, $param_category_id);
 
             $param_name = $_POST['name'];
             $param_description = $_POST['description'];
             $param_price = $_POST['price'];
             $param_stock = $_POST['stock'];
             $param_sku = $_POST['sku'];
-            $param_image = $image_base64;
             $param_category_id = $category_id;
 
             if ($stmt->execute()) {
                 $new_product_id = $mysqli->insert_id;
+
+                // Insert images into product_images table
+                $sql_insert_image = "INSERT INTO product_images (product_id, image_data) VALUES (?, ?)";
+                if ($stmt_insert_image = $mysqli->prepare($sql_insert_image)) {
+                    foreach ($images_to_save as $img_data) {
+                        $stmt_insert_image->bind_param("is", $new_product_id, $img_data);
+                        $stmt_insert_image->execute();
+                    }
+                    $stmt_insert_image->close();
+                }
 
                 // Log initial stock movement
                 $sql_movement = "INSERT INTO inventory_movements (product_id, quantity, reason) VALUES (?, ?, ?)";
@@ -130,9 +154,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         <span class="invalid-feedback"><?php echo $category_err; ?></span>
                     </div>
                     <div class="form-group">
-                        <label class="text-white">Image</label>
-                        <input type="file" name="image" class="form-control">
+                        <label class="text-white">Images (Upload or Paste)</label>
+                        <input type="file" name="images[]" id="imageUpload" class="form-control" multiple>
                         <span class="invalid-feedback"><?php echo $image_err; ?></span>
+                        <br>
+                        <div class="text-white">Or paste images here:</div>
+                        <div id="pasteArea" style="border: 1px dashed #ccc; padding: 20px; min-height: 100px; text-align: center; cursor: pointer;" class="form-control">
+                            Paste images here (Ctrl+V)
+                        </div>
+                        <div id="imagePreviews" style="margin-top: 10px;"></div>
+                        <input type="hidden" name="pasted_images_base64" id="pastedImagesBase64">
                     </div>
                     <input type="submit" class="btn btn-primary" value="Submit">
                     <a href="products.php" class="btn btn-secondary">Cancel</a>
@@ -142,5 +173,65 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     </div>
 
     <?php include 'templates/footer.php'; ?>
+    <script>
+        let allPastedImages = [];
+
+        function renderPreviews() {
+            const previewsContainer = document.getElementById('imagePreviews');
+            previewsContainer.innerHTML = '';
+            allPastedImages.forEach((base64, index) => {
+                const img = document.createElement('img');
+                img.src = base64;
+                img.style.maxWidth = '100px';
+                img.style.maxHeight = '100px';
+                img.style.marginRight = '10px';
+                img.style.marginBottom = '10px';
+                previewsContainer.appendChild(img);
+            });
+            document.getElementById('pastedImagesBase64').value = JSON.stringify(allPastedImages);
+        }
+
+        document.getElementById('pasteArea').addEventListener('paste', function(e) {
+            e.preventDefault();
+            const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf('image') !== -1) {
+                    const blob = items[i].getAsFile();
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        allPastedImages.push(event.target.result);
+                        renderPreviews();
+                        document.getElementById('imageUpload').value = ''; // Clear file input if image is pasted
+                    };
+                    reader.readAsDataURL(blob);
+                }
+            }
+        });
+
+        document.getElementById('imageUpload').addEventListener('change', function() {
+            allPastedImages = []; // Clear pasted images if files are uploaded
+            const files = this.files;
+            const previewsContainer = document.getElementById('imagePreviews');
+            previewsContainer.innerHTML = '';
+
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        const img = document.createElement('img');
+                        img.src = event.target.result;
+                        img.style.maxWidth = '100px';
+                        img.style.maxHeight = '100px';
+                        img.style.marginRight = '10px';
+                        img.style.marginBottom = '10px';
+                        previewsContainer.appendChild(img);
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }
+            document.getElementById('pastedImagesBase64').value = ''; // Clear pasted images hidden input
+        });
+    </script>
 </body>
 </html>

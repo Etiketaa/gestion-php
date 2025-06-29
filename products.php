@@ -8,7 +8,9 @@ if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
 
 require_once "db.php";
 
-$sql = "SELECT * FROM products";
+$sql = "SELECT p.*, c.name as category_name, (SELECT image_data FROM product_images WHERE
+     product_id = p.id LIMIT 1) as first_image FROM products p LEFT JOIN categories c ON
+     p.category_id = c.id";
 $result = $mysqli->query($sql);
 ?>
 
@@ -58,6 +60,7 @@ $result = $mysqli->query($sql);
                             <th>Description</th>
                             <th>Price</th>
                             <th>Stock</th>
+                            <th>Category</th>
                             <th>Action</th>
                         </tr>
                     </thead>
@@ -67,8 +70,8 @@ $result = $mysqli->query($sql);
                                 <tr>
                                     <td><?php echo $row['id']; ?></td>
                                     <td>
-                                        <?php if (!empty($row['image'])): ?>
-                                            <img src="data:image/jpeg;base64,<?php echo $row['image']; ?>" width="100" />
+                                        <?php if (!empty($row['first_image'])): ?>
+                                            <img src="data:image/jpeg;base64,<?php echo $row['first_image']; ?>" width="100" />
                                         <?php endif; ?>
                                     </td>
                                     <td><?php echo $row['sku']; ?></td>
@@ -76,6 +79,7 @@ $result = $mysqli->query($sql);
                                     <td><?php echo $row['description']; ?></td>
                                     <td><?php echo $row['price']; ?></td>
                                     <td><?php echo $row['stock']; ?></td>
+                                    <td><?php echo $row['category_name'] ?? 'N/A'; ?></td>
                                     <td>
                                         <?php if (isset($_SESSION["role"]) && $_SESSION["role"] === 'admin'): ?>
                                         <a href="edit_product.php?id=<?php echo $row['id']; ?>" class="btn btn-primary">Edit</a>
@@ -86,7 +90,7 @@ $result = $mysqli->query($sql);
                             <?php endwhile; ?>
                         <?php else: ?>
                             <tr>
-                                <td colspan="8" class="text-center">No products found.</td>
+                                <td colspan="9" class="text-center">No products found.</td>
                             </tr>
                         <?php endif; ?>
                     </tbody>

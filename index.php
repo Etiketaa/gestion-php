@@ -1,5 +1,8 @@
 <?php
 session_start();
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
 // Check if the user is logged in, otherwise redirect to login page
 if (!isset($_SESSION["loggedin"]) || $_SESSION["loggedin"] !== true) {
@@ -24,7 +27,7 @@ $total_stock_quantity = 0;
 $sql_total_stock = "SELECT SUM(stock) AS total_stock FROM products";
 if ($result_total_stock = $mysqli->query($sql_total_stock)) {
     $row = $result_total_stock->fetch_assoc();
-    $total_stock_quantity = $row['total_stock'];
+    $total_stock_quantity = $row['total']; // This is the line that caused "Undefined array key 'total'"
 }
 
 // Low Stock Products (threshold: 5)
@@ -114,7 +117,7 @@ $mysqli->close();
                     </tbody>
                 </table>
                 <?php else: ?>
-                    <p>No products with low stock.</p>
+                    <p class="text-white">No products with low stock.</p>
                 <?php endif; ?>
             </div>
             <div class="col-md-6">
