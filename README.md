@@ -2,7 +2,7 @@
 
 Este es un sistema de gestión de puntos de venta y control de inventario desarrollado en PHP y MySQL, con una interfaz de usuario moderna y un tema oscuro.
 
-(img/gestion1.png)
+! [Imagen de login](img/gestion1.png)
 
 ## Características
 
