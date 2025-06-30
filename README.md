@@ -23,6 +23,11 @@ El sistema incluye las siguientes funcionalidades:
 *   **Gestión de Categorías:**
     *   Creación, lectura, actualización y eliminación (CRUD) de categorías de productos.
 
+*   **Gestión de Carrito de Compras:**
+    *   Añadir productos al carrito.
+    *   Visualizar y gestionar los productos en el carrito.
+    *   Actualizar cantidades y eliminar productos del carrito.
+
 *   **Gestión de Inventario:**
     *   Registro de movimientos de inventario (entradas y salidas de stock) con un historial detallado.
     *   Alertas de stock bajo en el dashboard principal.
@@ -107,6 +112,13 @@ Los administradores pueden gestionar los usuarios desde la sección "Manage User
 *   **Añadir Producto:** Los administradores pueden añadir nuevos productos, incluyendo nombre, descripción, precio, stock, SKU automático, imagen y categoría.
 *   **Ver Productos:** Todos los usuarios pueden ver la lista de productos. Los administradores verán opciones adicionales para editar y eliminar.
 *   **Buscar Productos:** Utiliza el campo de búsqueda en tiempo real para filtrar productos por nombre o SKU.
+
+### Gestión de Carrito de Compras
+
+*   **Añadir al Carrito:** Los usuarios pueden añadir productos al carrito desde la lista de productos.
+*   **Ver Carrito:** Accede al carrito para ver los productos añadidos, sus cantidades y el total.
+*   **Actualizar Cantidad:** Modifica la cantidad de un producto directamente en el carrito.
+*   **Eliminar del Carrito:** Quita productos del carrito si ya no los deseas.
 
 ## Tecnologías Utilizadas
 
