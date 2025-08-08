@@ -53,7 +53,7 @@ Para configurar y ejecutar este proyecto en tu entorno local, sigue estos pasos:
 2.  **Clonar el Repositorio:** Descarga o clona este repositorio en el directorio `htdocs` de tu instalación de XAMPP (o el directorio equivalente para tu servidor web).
 
     ```bash
-    git clone <URL_DEL_REPOSITORIO> C:\xampp\htdocs\gestion-php
+    git clone https://github.com/Etiketaa/gestion-php.git
     ```
 
 3.  **Configuración de la Base de Datos:**
